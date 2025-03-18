@@ -1,6 +1,6 @@
 # Yu-Gi-Oh! NFC Card Viewer
 
-This is a PySide6-based graphical user interface (GUI) for viewing Yu-Gi-Oh! card details. It works in conjunction with the [Yu-Gi-Oh! Card NFC Server](https://github.com/your-repo-name/card-server) to display card information from NFC tags.
+This is a PySide6-based graphical user interface (GUI) for viewing Yu-Gi-Oh! card details. It works in conjunction with the [Yu-Gi-Oh! Card NFC Server](https://github.com/SideswipeeZ/ygo-nfc-card-server) to display card information from NFC tags.
 
 The application generates the card dynamically in the GUI by receiving JSON data from the card server and animating the card display with transitions.
 
