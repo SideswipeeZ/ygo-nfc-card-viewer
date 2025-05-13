@@ -136,11 +136,14 @@ class CardMakerWidget(QWidget):
         max_font_size: int = 12,
         min_font_size: int = 10,
         min_letter_spacing: float = -1.0,
+        pend: bool = False
     ) -> None:
         """
         Adjust the font size and letter spacing so the text fits within the given rectangle.
         """
-        lore = self.card_data.get("frameType", "").lower() == "normal"
+        lore = False
+        if not pend:
+            lore = self.card_data.get("frameType", "").lower().startswith("normal")
         chosen_font: Optional[QFont] = None
 
         if lore:
@@ -518,14 +521,16 @@ class CardMakerWidget(QWidget):
             self.draw_fitted_description(
                 painter,
                 pend_desc_rect,
-                self.card_data.get("pend_desc", "No description available."),
+                self.card_data.get("pend_desc", ""),  # Pend Effect is not Mandatory as some cards dont have it populated.
                 max_font_size=12,
                 min_font_size=8,
+                pend=True
             )
+            desc_key = "monster_desc" if self.card_data.get("pend_desc") else "desc"
             self.draw_fitted_description(
                 painter,
                 desc_rect,
-                self.card_data.get("monster_desc", "No description available."),
+                self.card_data.get(desc_key, "No description available."),
                 max_font_size=12,
                 min_font_size=9,
             )
@@ -1127,7 +1132,7 @@ class AnimatedAPNGLabel(QLabel):
 class MainWindow(QMainWindow):
     def __init__(self, args=None):
         super().__init__()
-        version = "0.1.0"
+        version = "0.1.4"
         self.setWindowTitle(f"Yu-Gi-Oh! NFC Card Viewer v{version} - By SideswipeeZ")
         self.ico = QIcon(os.path.join(self.getRootPath(), "logo.png"))
         self.setWindowIcon(self.ico)
@@ -1145,15 +1150,17 @@ class MainWindow(QMainWindow):
         card_main_border = (17, 17, 522, 768)
 
         # -- Hues and Saturation --
-        hue_normal = 30.0
+        hue_normal = 23.0
         hue_ritual = -159.0
         hue_fusion = -108.0
         hue_trap = -44
-        sat_main = 0.8
-        sat_normal = 0.8
-        sat_fusion = 0.8
-        sat_ritual = 0.8
+        sat_main = 0.78
+        sat_normal = 0.73
+        sat_fusion = 0.73
+        sat_ritual = 0.73
         bright_synchro = 120
+        bright_normal = 13
+        bright_ritual = 13
 
         self.active_border = "token"
 
@@ -1189,11 +1196,11 @@ class MainWindow(QMainWindow):
         self.webp_main_label.setGeometry(full_rect)
 
         self.webp_main_normal_label = AnimatedWebPLabel(self, initial_opacity=0.0)
-        self.webp_main_normal_label.set_webp(main_webp, hue=hue_normal, saturation=sat_normal ,region=card_main_border)
+        self.webp_main_normal_label.set_webp(main_webp, hue=hue_normal, brightness=bright_normal, saturation=sat_normal, region=card_main_border)
         self.webp_main_normal_label.setGeometry(full_rect)
 
         self.webp_main_ritual_label = AnimatedWebPLabel(self, initial_opacity=0.0)
-        self.webp_main_ritual_label.set_webp(main_webp, hue=hue_ritual, saturation=sat_ritual, region=card_main_border)
+        self.webp_main_ritual_label.set_webp(main_webp, hue=hue_ritual, brightness=bright_ritual , saturation=sat_ritual, region=card_main_border)
         self.webp_main_ritual_label.setGeometry(full_rect)
 
         self.webp_main_fusion_label = AnimatedWebPLabel(self, initial_opacity=0.0)
@@ -1335,9 +1342,17 @@ class MainWindow(QMainWindow):
         fadeout_duration = 250
         fadein_duration = 500
 
+        current_pendulum = "pendulum" in self.active_border
+        current_frame = self.active_border.strip("_pendulum")
+
+        new_pendulum = "pendulum" in frame
+        new_frame = frame.strip("_pendulum")
+
         # Fade out the currently active border.
-        self.fade_border(self.active_border, "fade_out", fadeout_duration)
-        if "_pendulum" in self.active_border:
+        if current_frame != new_frame:
+            self.fade_border(self.active_border, "fade_out", fadeout_duration)
+
+        if current_pendulum and not new_pendulum:
             self.webp_main_pendulum_label.fade_out(fadeout_duration)
             self.webp_desc_label.fade_in(fadein_duration)
             self.webp_artframe_label.fade_in(fadein_duration)
@@ -1345,9 +1360,11 @@ class MainWindow(QMainWindow):
         # Update active border.
         self.active_border = frame
 
-        # Fade in the new active border.
-        self.fade_border(self.active_border, "fade_in", fadein_duration)
-        if "_pendulum" in self.active_border:
+        if current_frame != new_frame:
+            # Fade in the new active border.
+            self.fade_border(self.active_border, "fade_in", fadein_duration)
+
+        if not current_pendulum and new_pendulum:
             self.webp_main_pendulum_label.fade_in(fadein_duration)
             self.webp_desc_label.fade_out(fadeout_duration)
             self.webp_artframe_label.fade_out(fadeout_duration)
